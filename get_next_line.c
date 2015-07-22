@@ -70,21 +70,3 @@ int				get_next_line(int fd, char **line)
 	*line = ft_remove_end_line(buff, &tmpl, rest);
 	return (ft_returne(line, ret));
 }
-
-/*int			main(void)
-{
-	int		fd;
-	int		ret;
-char	*line;
-
-	fd = open("clang", O_RDONLY);
-	while ((ret = get_next_line(fd, &line)) > 0)
-	{
-		printf("%s\n", line);
-	//	printf("%d\n", ret);
-		free(line);
-		line = NULL;
-	}
-//	printf("%d\n", ret);
-	return (0);
-}*/
