@@ -1,90 +1,90 @@
 #include "get_next_line.h"
 
-int		ft_end_of_line(char *s)
+static char		*ft_read(int fd, int *ret)
 {
-	int	i;
+	char	buff[BUFF_SIZE + 1];
+	char	*tmpl;
+	int		eof;
 
-	i = 0;
-	while (s[i] != '\0' && s[i] != '\n')
-		i++;
-	if (s[i] == '\n')
-		return (i);
-	return (-1);
-}
-
-void	ft_remove_end_line(char **s)
-{
-	char	*tmp;
-	size_t	i;
-
-	i = 0;
-	while ((*s)[i] != '\n')
-		i++;
-	tmp = (char *)malloc(sizeof(char) * (i + 1));
-	i = 0;
-	while ((*s)[i] != '\n')
+	ft_bzero(buff, BUFF_SIZE + 1);
+	tmpl = ft_strnew(BUFF_SIZE);
+	while (!ft_strchr(buff, '\n'))
 	{
-		tmp[i] = (*s)[i];
-		i++;
-	}
-	tmp[i] = '\0';
-	ft_strdel(s);
-	*s = tmp;
-}
-
-void	ft_read_end(int const fd, char **line, char *tmpl, int eol, int ret)
-{
-	static char		buff[BUFF_SIZE + 1] = {'\0'};
-
-	while ((ret = read(fd, buff, BUFF_SIZE)) > 0)
-	{
-		buff[ret] = '\0';
-		ft_realloc_join(&tmpl, buff);
-		if ((eol = ft_end_of_line(buff)) > 0)
+		eof = read(fd, buff, BUFF_SIZE);
+		if (eof < 0 || !buff)
+			return (NULL);
+		if (!eof)
 		{
-			ft_remove_end_line(&tmpl);
-			*line = tmpl;
-			ft_strcpy(buff, buff + eol + 1);
-			return ;
+			*ret = 1;
+			return (tmpl);
 		}
+		buff[eof] = '\0';
+		tmpl = ft_realloc_join(&tmpl, buff);
 	}
+	return (tmpl);
 }
 
-int		ft_returne(char **line, char *tmpl, int ret, char *buff)
+static char		*ft_remove_end_line(char *buff, char **tmpl, char *rest)
 {
-	if (ret > 0)
-		return (1);
-	if (ret < 0)
+	char	*line;
+
+	line = ft_strjoin(buff, *tmpl);
+	if (rest)
+		ft_strcpy(buff, rest + 1);
+	else
+		ft_bzero(buff, BUFF_SIZE + 1);
+	if (*tmpl)
+		ft_strdel(tmpl);
+	return (line);
+}
+
+static int		ft_returne(char **line, int ret)
+{
+	if (!line || !*line)
 		return (-1);
-	if (ret == 0 && tmpl != NULL)
-	{
-		*line = tmpl;
-		buff[0] = '\0';
+	else if (ret)
+		return (0);
+	else
 		return (1);
-	}
-	return (0);
 }
 
-int		get_next_line(int const fd, char **line)
+int				get_next_line(int fd, char **line)
 {
-	static char		buff[BUFF_SIZE + 1] = {'\0'};
+	static char		buff[BUFF_SIZE + 1];
 	char			*tmpl;
-	int				eol;
+	char			*rest;
 	int				ret;
 
 	ret = 0;
 	tmpl = NULL;
-	if (buff)
+	if (fd < 0 || !line)
+		return (-1);
+	if (!(rest = ft_strchr(buff, '\n')))
 	{
-		ft_realloc_join(&tmpl, buff);
-		if ((eol = ft_end_of_line(tmpl)) >= 0)
-		{
-			ft_strcpy(buff, tmpl + eol + 1);
-			ft_remove_end_line(&tmpl);
-			*line = tmpl;
-			return (1);
-		}
+		if (!(tmpl = ft_read(fd, &ret)))
+			return (-1);
+		rest = ft_strchr(tmpl, '\n');
 	}
-	ft_read_end(fd, line, tmpl, eol, ret);
-	return(ft_returne(line, tmpl, ret, buff));
+	if (rest)
+		*rest = '\0';
+	*line = ft_remove_end_line(buff, &tmpl, rest);
+	return (ft_returne(line, ret));
 }
+
+/*int			main(void)
+{
+	int		fd;
+	int		ret;
+char	*line;
+
+	fd = open("clang", O_RDONLY);
+	while ((ret = get_next_line(fd, &line)) > 0)
+	{
+		printf("%s\n", line);
+	//	printf("%d\n", ret);
+		free(line);
+		line = NULL;
+	}
+//	printf("%d\n", ret);
+	return (0);
+}*/
